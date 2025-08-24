@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.npmrc
+.git
+.gitignore
+dist
+.env.local
+.env.development
+.env.test
+.env
+coverage
+Dockerfile*
+docker-compose*
+**/.DS_Store
+**/Thumbs.db
+
+
