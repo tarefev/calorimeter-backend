@@ -18,6 +18,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends openssl wget
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/prisma ./prisma
 ENV PORT=3000
 EXPOSE 3000
