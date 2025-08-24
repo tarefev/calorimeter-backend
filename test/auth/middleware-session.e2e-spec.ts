@@ -5,6 +5,7 @@ import { AppModule } from "@/app.module";
 import { prisma } from "@/prisma/prismaClient";
 import * as cookieParser from "cookie-parser";
 import { sessionMiddleware } from "@/auth/session.middleware";
+import cleanupE2E from "@/helpers/e2eCleanup";
 
 describe("Session middleware (valid/expired/revoked) (e2e)", () => {
   let app: INestApplication;
@@ -20,15 +21,7 @@ describe("Session middleware (valid/expired/revoked) (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.session
-      .deleteMany({ where: { user: { email: { contains: "e2e-mw-" } } } })
-      .catch(() => {});
-    await prisma.authAccount
-      .deleteMany({ where: { user: { email: { contains: "e2e-mw-" } } } })
-      .catch(() => {});
-    await prisma.user
-      .deleteMany({ where: { email: { contains: "e2e-mw-" } } })
-      .catch(() => {});
+    await cleanupE2E(prisma).catch(() => {});
     await app.close();
     await prisma.$disconnect();
   });

@@ -9,6 +9,7 @@ import { AppModule } from "@/app.module";
 import { prisma } from "@/prisma/prismaClient";
 import * as cookieParser from "cookie-parser";
 import { sessionMiddleware } from "@/auth/session.middleware";
+import cleanupE2E from "@/helpers/e2eCleanup";
 
 describe("POST /auth/register validation (e2e)", () => {
   let app: INestApplication;
@@ -39,9 +40,7 @@ describe("POST /auth/register validation (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.user
-      .deleteMany({ where: { email: { contains: "e2e-invalid-" } } })
-      .catch(() => {});
+    await cleanupE2E(prisma).catch(() => {});
     await app.close();
     await prisma.$disconnect();
   });

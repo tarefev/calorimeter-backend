@@ -5,6 +5,7 @@ import { AppModule } from "@/app.module";
 import { prisma } from "@/prisma/prismaClient";
 import * as cookieParser from "cookie-parser";
 import { sessionMiddleware } from "@/auth/session.middleware";
+import cleanupE2E from "@/helpers/e2eCleanup";
 
 describe("POST /auth/login (happy path) (e2e)", () => {
   let app: INestApplication;
@@ -20,15 +21,7 @@ describe("POST /auth/login (happy path) (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.authAccount
-      .deleteMany({ where: { user: { email: { startsWith: "e2e-login-" } } } })
-      .catch(() => {});
-    await prisma.session
-      .deleteMany({ where: { user: { email: { startsWith: "e2e-login-" } } } })
-      .catch(() => {});
-    await prisma.user
-      .deleteMany({ where: { email: { startsWith: "e2e-login-" } } })
-      .catch(() => {});
+    await cleanupE2E(prisma).catch(() => {});
     await app.close();
     await prisma.$disconnect();
   });
