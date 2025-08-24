@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique @db.VarChar(320)
+  passwordHash     String
+  telegramId       String?      @unique
+  telegramUsername String?      @db.VarChar(32)
+  telegramLinkedAt DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  sessions         Session[]
+  profile          UserProfile?
+
+  @@index([email])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel    String    @db.VarChar(16)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  lastSeenAt DateTime?
+  ip         String?   @db.VarChar(45)
+  userAgent  String?
+  revokedAt  DateTime?
+
+  @@index([userId, expiresAt])
+}
+
+model UserProfile {
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  heightCm       Int?
+  targetWeightKg Decimal? @db.Decimal(5, 2)
+  age            Int?
+  sex            String?  @db.VarChar(1)
+  activityLevel  String?  @db.VarChar(16)
+  tz             String?  @db.VarChar(64)
+  updatedAt      DateTime @updatedAt
+}

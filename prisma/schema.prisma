@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -15,11 +14,74 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique @db.VarChar(320)
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String          @id @default(cuid())
+  email            String          @unique @db.VarChar(320)
+  passwordHash     String
+  telegramId       String?         @unique
+  telegramUsername String?         @db.VarChar(32)
+  telegramLinkedAt DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  sessions         Session[]
+  profile          UserProfile?
+  authAccounts     AuthAccount[]
+  authLinkTokens   AuthLinkToken[]
+  failedLoginCount Int      @default(0)
+  failedLoginLockedUntil DateTime?
 
   @@index([email])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel    String    @db.VarChar(16)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  lastSeenAt DateTime?
+  ip         String?   @db.VarChar(45)
+  userAgent  String?
+  revokedAt  DateTime?
+
+  @@index([userId, expiresAt])
+}
+
+model UserProfile {
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  heightCm       Int?
+  targetWeightKg Decimal? @db.Decimal(5, 2)
+  age            Int?
+  sex            String?  @db.VarChar(1)
+  activityLevel  String?  @db.VarChar(16)
+  tz             String?  @db.VarChar(64)
+  updatedAt      DateTime @updatedAt
+}
+
+model AuthAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String   @db.VarChar(32) // e.g. 'local', 'telegram'
+  providerId   String   @db.VarChar(320) // email for local, telegramId for telegram
+  passwordHash String? // only for local provider
+  createdAt    DateTime @default(now())
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+model AuthLinkToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String    @unique @db.VarChar(32)
+  provider   String    @db.VarChar(32) // e.g. 'telegram'
+  providerId String?   @db.VarChar(64) // telegram user id once confirmed
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, expiresAt])
 }

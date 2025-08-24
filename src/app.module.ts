@@ -1,11 +1,14 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { randomUUID } from "node:crypto";
 import { LoggerModule } from "nestjs-pino";
 import { HealthModule } from "@/health/health.module";
 import { MetricsModule } from "@/metrics/metrics.module";
+import { AuthModule } from "@/auth/auth.module";
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === "production" ? "info" : "debug",
@@ -39,6 +42,7 @@ import { MetricsModule } from "@/metrics/metrics.module";
     }),
     HealthModule,
     MetricsModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
