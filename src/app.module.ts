@@ -21,7 +21,7 @@ import { HealthModule } from "@/health/health.module";
         redact: [
           "req.headers.authorization",
           "req.headers.cookie",
-          "res.headers[set-cookie]",
+          'res.headers["set-cookie"]',
         ],
       },
     }),
