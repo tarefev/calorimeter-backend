@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
 import { HealthModule } from "@/health/health.module";
+import { MetricsModule } from "@/metrics/metrics.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { HealthModule } from "@/health/health.module";
       },
     }),
     HealthModule,
+    MetricsModule,
   ],
 })
 export class AppModule {}

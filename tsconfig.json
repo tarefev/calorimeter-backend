@@ -12,7 +12,8 @@
     "outDir": "./dist",
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@/metrics/*": ["metrics/*"]
     },
     "rootDir": "./src",
     "incremental": true,
