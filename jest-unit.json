@@ -1,0 +1,15 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testMatch": ["<rootDir>/test/unit/**/*.spec.ts"],
+  "transform": {
+    "^.+\\.(ts|tsx)$": ["ts-jest", { "tsconfig": "tsconfig.json" }]
+  },
+  "moduleDirectories": ["node_modules", "src"],
+  "moduleNameMapper": {
+    "^@/test/(.*)$": "<rootDir>/test/$1",
+    "^@/helpers/(.*)$": "<rootDir>/test/helpers/$1",
+    "^@/(.*)$": "<rootDir>/src/$1"
+  }
+}

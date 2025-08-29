@@ -2,7 +2,7 @@
   const data = {
     dtype: "day_record_v1",
     metrics: {
-      weight: 103.9,
+      weight: 104.5,
     },
     activity: [],
     sleep: [

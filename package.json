@@ -6,7 +6,11 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
-    "test:e2e": "jest --config ./jest-e2e.json"
+    "test:e2e": "jest --config ./jest-e2e.json",
+    "test:unit": "jest --config ./jest-unit.json --runInBand",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:deploy": "npm run db:migrate:deploy && npm run db:generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

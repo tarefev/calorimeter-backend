@@ -1,0 +1,95 @@
+(function () {
+  const data = {
+    dtype: "day_record_v1",
+    metrics: {
+      weight: 103.7,
+    },
+    activity: [
+      {
+        date: "2025-08-27",
+        steps: 9400,
+      },
+    ],
+    sleep: [],
+    water: [],
+    food: [
+      {
+        date: "2025-08-27",
+        time: "08:00:00",
+        name: "Омлет из белков с овощами",
+        weight_g: 150,
+        kcal: 120,
+        nutrients_per_100g: { kcal: 80, protein: 10, fat: 3, carbs: 2 },
+      },
+      {
+        date: "2025-08-27",
+        time: "12:00:00",
+        name: "Голубика",
+        weight_g: 125,
+        kcal: 71,
+        nutrients_per_100g: { kcal: 56.8, protein: 0.8, fat: 0, carbs: 14.4 },
+      },
+      {
+        date: "2025-08-27",
+        time: "13:00:00",
+        name: "Куриная грудка гриль",
+        weight_g: 298,
+        kcal: 450,
+        nutrients_per_100g: { kcal: 151.01, protein: 23, fat: 4.5, carbs: 0 },
+      },
+      {
+        date: "2025-08-27",
+        time: "13:00:00",
+        name: "Гречка по-купечески",
+        weight_g: 246,
+        kcal: 420,
+        nutrients_per_100g: {
+          kcal: 170.73,
+          protein: 8.6,
+          fat: 8.9,
+          carbs: 19.2,
+        },
+      },
+      {
+        date: "2025-08-27",
+        time: "13:00:00",
+        name: "Винегрет",
+        weight_g: 406,
+        kcal: 350,
+        nutrients_per_100g: {
+          kcal: 86.21,
+          protein: 1.33,
+          fat: 3.1,
+          carbs: 15.49,
+        },
+      },
+      {
+        date: "2025-08-27",
+        time: "15:00:00",
+        name: "Протеиновый батончик",
+        weight_g: 60,
+        kcal: 220,
+        nutrients_per_100g: { kcal: 366.67, protein: 25, fat: 10, carbs: 40 },
+      },
+    ],
+    exercise: [],
+    totals: {
+      kcal: 2200,
+      protein: 185,
+      fat: 74,
+      carbs: 191,
+      food_weight_g: 1485,
+      food_items_count: 6,
+      water_l: 0,
+      liquid_water_l: 0,
+      steps: 9400,
+      sleep_hours: 0,
+      exercise_count: 0,
+    },
+    theoretical: {
+      steps_burn_kcal: -250,
+      net_deficit_kcal: 1950,
+      projected_weekly_kg: 0,
+    },
+  };
+})();
