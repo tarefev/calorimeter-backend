@@ -19,10 +19,10 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends openssl wget
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 # Create minimal tsconfig for runtime alias resolution (@/ -> dist)
-RUN printf '{"compilerOptions":{"baseUrl":"./dist","paths":{"@/*":["*"]}}}\n' > tsconfig.json
+RUN printf '{"compilerOptions":{"baseUrl":"./dist","paths":{"@/*":["src/*"]}}}\n' > tsconfig.json
 COPY --from=build /app/prisma ./prisma
 ENV PORT=3000
 EXPOSE 3000
-CMD sh -c "npx prisma migrate deploy && node -r tsconfig-paths/register dist/main.js"
+CMD sh -c "npx prisma migrate deploy && node -r tsconfig-paths/register dist/src/main.js"
 
 
