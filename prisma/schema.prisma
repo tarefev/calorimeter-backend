@@ -23,6 +23,7 @@ model User {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   sessions         Session[]
+  dayRecords       DayRecord[]
   profile          UserProfile?
   authAccounts     AuthAccount[]
   authLinkTokens   AuthLinkToken[]
@@ -84,4 +85,138 @@ model AuthLinkToken {
   createdAt  DateTime  @default(now())
 
   @@index([userId, expiresAt])
+}
+
+// DayRecord and related models: store daily user entries and items
+model DayRecord {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+
+  // optional aggregated/entered metrics for the day
+  metric    Metric?
+
+  // child items
+  water     Water[]
+  food      Food[]
+  activity  Activity[]
+  exercise  Exercise[]
+  sleep     Sleep?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Metric {
+  id            String   @id @default(cuid())
+  dayRecordId   String   @unique
+  dayRecord     DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  // user-entered or device-measured metrics
+  weightKg      Decimal? @db.Decimal(6,2)
+  bodyFatPct    Decimal? @db.Decimal(5,2)
+  caloriesIn    Int?
+  caloriesOut   Int?
+  proteinG      Int?
+  carbsG        Int?
+  fatG          Int?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Water {
+  id          String   @id @default(cuid())
+  dayRecordId String
+  dayRecord   DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  amountMl    Int
+  notedAt     DateTime @default(now())
+  timeLocal   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayRecordId])
+}
+
+model Food {
+  id          String   @id @default(cuid())
+  dayRecordId String
+  dayRecord   DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  name        String   @db.VarChar(255)
+  calories    Int
+  proteinG    Int?
+  carbsG      Int?
+  fatG        Int?
+  kcalPer100G Decimal? @db.Decimal(8,2)
+  proteinPer100G Decimal? @db.Decimal(8,2)
+  fatPer100G Decimal? @db.Decimal(8,2)
+  carbsPer100G Decimal? @db.Decimal(8,2)
+  weightG     Int?
+  notedAt     DateTime? 
+  timeLocal   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayRecordId])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  dayRecordId String
+  dayRecord   DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  type        String   @db.VarChar(64) // e.g. 'walking', 'running'
+  durationMin Int?
+  calories    Int?
+  intensity   String?  @db.VarChar(16)
+  notedAt     DateTime? 
+  timeLocal   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayRecordId])
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  dayRecordId String
+  dayRecord   DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  name        String   @db.VarChar(128)
+  sets        Int?
+  reps        Int?
+  weightKg    Decimal? @db.Decimal(6,2)
+  durationMin Int?
+  calories    Int?
+  notedAt     DateTime?
+  timeLocal   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayRecordId])
+}
+
+model Sleep {
+  id          String   @id @default(cuid())
+  dayRecordId String   @unique
+  dayRecord   DayRecord @relation(fields: [dayRecordId], references: [id], onDelete: Cascade)
+
+  startAt     DateTime
+  endAt       DateTime
+  startLocal  String?
+  endLocal    String?
+  quality     Int?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
