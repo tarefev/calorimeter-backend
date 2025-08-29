@@ -1,7 +1,8 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "@/app.module";
-import { Logger, ValidationPipe, BadRequestException } from "@nestjs/common";
+import { ValidationPipe, BadRequestException } from "@nestjs/common";
+import { Logger } from "nestjs-pino";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
