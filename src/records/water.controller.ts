@@ -17,6 +17,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiHeader,
   ApiTags,
 } from "@nestjs/swagger";
 import { prisma } from "@/prisma/prismaClient";
@@ -78,6 +79,12 @@ export class WaterController {
   }
   @ApiOperation({ summary: "Update water item by id" })
   @ApiParam({ name: "id", description: "Water item id" })
+  @ApiHeader({
+    name: "If-Match",
+    required: false,
+    description:
+      "ETag of parent day record; when provided and mismatched → 412",
+  })
   @ApiBody({
     schema: {
       type: "object",
@@ -110,9 +117,22 @@ export class WaterController {
     if (!item) throw new HttpException("not_found", HttpStatus.NOT_FOUND);
     const day = await prisma.dayRecord.findUnique({
       where: { id: item.dayRecordId },
+      select: { id: true, userId: true, updatedAt: true },
     });
     if (!day || day.userId !== userId)
       throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+
+    const ifMatch =
+      (req.headers["if-match"] as string | undefined) || undefined;
+    if (ifMatch) {
+      const { generateEtag } = await import("@/records/utils/etag");
+      if (ifMatch !== generateEtag(day.updatedAt.toISOString())) {
+        throw new HttpException(
+          "precondition_failed",
+          HttpStatus.PRECONDITION_FAILED
+        );
+      }
+    }
 
     await prisma.water.update({
       where: { id },
@@ -131,6 +151,12 @@ export class WaterController {
 
   @ApiOperation({ summary: "Delete water item by id" })
   @ApiParam({ name: "id", description: "Water item id" })
+  @ApiHeader({
+    name: "If-Match",
+    required: false,
+    description:
+      "ETag of parent day record; when provided and mismatched → 412",
+  })
   @ApiOkResponse({
     description: "{ ok: true }",
     schema: {

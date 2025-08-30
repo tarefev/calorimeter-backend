@@ -18,12 +18,14 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiHeader,
   ApiTags,
 } from "@nestjs/swagger";
 import { AuthenticatedRequest } from "@/auth/session.middleware";
 import { fetchDayRecordWithChildren } from "@/records/mapper/queries";
 import { mapDayRecordToJson } from "@/records/mapper/dayRecord.mapper";
 import { prisma } from "@/prisma/prismaClient";
+import { generateEtag } from "@/records/utils/etag";
 
 // Swagger response schema for day_record_v1
 const dayRecordResponseSchema: any = {
@@ -195,6 +197,12 @@ export class RecordsController {
       },
     },
   })
+  @ApiHeader({
+    name: "If-Match",
+    required: false,
+    description:
+      "ETag of current day record; when provided and mismatched → 412",
+  })
   @Put(":date")
   async replaceRecord(
     @Param("date") dateParam: string,
@@ -209,6 +217,24 @@ export class RecordsController {
 
     const dateIso = dateParam;
     const date = new Date(`${dateIso}T00:00:00.000Z`);
+
+    // Concurrency guard
+    const existing = await prisma.dayRecord.findUnique({
+      where: { userId_date: { userId, date } },
+      select: { updatedAt: true },
+    });
+    const ifMatch =
+      (req.headers["if-match"] as string | undefined) || undefined;
+    if (
+      existing &&
+      ifMatch &&
+      ifMatch !== generateEtag(existing.updatedAt.toISOString())
+    ) {
+      throw new HttpException(
+        "precondition_failed",
+        HttpStatus.PRECONDITION_FAILED
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
       const day = await tx.dayRecord.upsert({
@@ -442,6 +468,12 @@ export class RecordsController {
       },
     },
   })
+  @ApiHeader({
+    name: "If-Match",
+    required: false,
+    description:
+      "ETag of current day record; when provided and mismatched → 412",
+  })
   @Patch(":date")
   async patchRecord(
     @Param("date") dateParam: string,
@@ -455,6 +487,24 @@ export class RecordsController {
     }
     const dateIso = dateParam;
     const date = new Date(`${dateIso}T00:00:00.000Z`);
+
+    // Concurrency guard
+    const existing = await prisma.dayRecord.findUnique({
+      where: { userId_date: { userId, date } },
+      select: { updatedAt: true },
+    });
+    const ifMatch =
+      (req.headers["if-match"] as string | undefined) || undefined;
+    if (
+      existing &&
+      ifMatch &&
+      ifMatch !== generateEtag(existing.updatedAt.toISOString())
+    ) {
+      throw new HttpException(
+        "precondition_failed",
+        HttpStatus.PRECONDITION_FAILED
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
       const day = await tx.dayRecord.upsert({
@@ -709,6 +759,12 @@ export class RecordsController {
       },
     },
   })
+  @ApiHeader({
+    name: "If-Match",
+    required: false,
+    description:
+      "ETag of current day record; when provided and mismatched → 412",
+  })
   @Post()
   async upsertRecord(
     @Body() body: any,
@@ -725,6 +781,24 @@ export class RecordsController {
       throw new HttpException("invalid_date", HttpStatus.BAD_REQUEST);
     }
     const date = new Date(`${dateIso}T00:00:00.000Z`);
+
+    // Concurrency guard (allow missing If-Match for first create)
+    const existing = await prisma.dayRecord.findUnique({
+      where: { userId_date: { userId, date } },
+      select: { updatedAt: true },
+    });
+    const ifMatch =
+      (req.headers["if-match"] as string | undefined) || undefined;
+    if (
+      existing &&
+      ifMatch &&
+      ifMatch !== generateEtag(existing.updatedAt.toISOString())
+    ) {
+      throw new HttpException(
+        "precondition_failed",
+        HttpStatus.PRECONDITION_FAILED
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
       // Ensure day record exists (or create)
