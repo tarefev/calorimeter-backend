@@ -41,7 +41,10 @@ export class ActivityController {
       },
     },
   })
-  @ApiOkResponse({ description: "{ id: string }" })
+  @ApiOkResponse({
+    description: "{ id: string }",
+    schema: { type: "object", properties: { id: { type: "string" } } },
+  })
   @Post("records/:date/activity")
   async addActivity(
     @Param("date") dateParam: string,
@@ -82,7 +85,13 @@ export class ActivityController {
 
   @ApiOperation({ summary: "Update activity item by id" })
   @ApiParam({ name: "id", description: "Activity item id" })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Patch("activity/:id")
   async updateActivity(
     @Param("id") id: string,
@@ -121,7 +130,13 @@ export class ActivityController {
 
   @ApiOperation({ summary: "Delete activity item by id" })
   @ApiParam({ name: "id", description: "Activity item id" })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Delete("activity/:id")
   async deleteActivity(
     @Param("id") id: string,

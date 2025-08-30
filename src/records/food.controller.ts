@@ -43,7 +43,10 @@ export class FoodController {
       },
     },
   })
-  @ApiOkResponse({ description: "{ id: string }" })
+  @ApiOkResponse({
+    description: "{ id: string }",
+    schema: { type: "object", properties: { id: { type: "string" } } },
+  })
   @Post("records/:date/food")
   async addFood(
     @Param("date") dateParam: string,
@@ -90,7 +93,13 @@ export class FoodController {
 
   @ApiOperation({ summary: "Update food item by id" })
   @ApiParam({ name: "id", description: "Food item id" })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Patch("food/:id")
   async updateFood(
     @Param("id") id: string,
@@ -135,7 +144,13 @@ export class FoodController {
 
   @ApiOperation({ summary: "Delete food item by id" })
   @ApiParam({ name: "id", description: "Food item id" })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Delete("food/:id")
   async deleteFood(
     @Param("id") id: string,

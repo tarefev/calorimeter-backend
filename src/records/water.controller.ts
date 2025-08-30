@@ -38,7 +38,10 @@ export class WaterController {
       },
     },
   })
-  @ApiOkResponse({ description: "{ id: string }" })
+  @ApiOkResponse({
+    description: "{ id: string }",
+    schema: { type: "object", properties: { id: { type: "string" } } },
+  })
   @Post("records/:date/water")
   async addWater(
     @Param("date") dateParam: string,
@@ -85,7 +88,13 @@ export class WaterController {
       },
     },
   })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Patch("water/:id")
   async updateWater(
     @Param("id") id: string,
@@ -122,7 +131,13 @@ export class WaterController {
 
   @ApiOperation({ summary: "Delete water item by id" })
   @ApiParam({ name: "id", description: "Water item id" })
-  @ApiOkResponse({ description: "{ ok: true }" })
+  @ApiOkResponse({
+    description: "{ ok: true }",
+    schema: {
+      type: "object",
+      properties: { ok: { type: "boolean", example: true } },
+    },
+  })
   @Delete("water/:id")
   async deleteWater(
     @Param("id") id: string,

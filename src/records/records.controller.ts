@@ -25,6 +25,129 @@ import { fetchDayRecordWithChildren } from "@/records/mapper/queries";
 import { mapDayRecordToJson } from "@/records/mapper/dayRecord.mapper";
 import { prisma } from "@/prisma/prismaClient";
 
+// Swagger response schema for day_record_v1
+const dayRecordResponseSchema: any = {
+  type: "object",
+  properties: {
+    dtype: { type: "string", example: "day_record_v1" },
+    date: { type: "string", example: "2025-09-01" },
+    metrics: {
+      type: "object",
+      nullable: true,
+      properties: {
+        caloriesIn: { type: "number", nullable: true },
+        caloriesOut: { type: "number", nullable: true },
+        weightKg: { type: "number", nullable: true },
+        bodyFatPct: { type: "number", nullable: true },
+        proteinG: { type: "number", nullable: true },
+        carbsG: { type: "number", nullable: true },
+        fatG: { type: "number", nullable: true },
+      },
+    },
+    water: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          amountMl: { type: "number" },
+          notedAt: { type: "string", format: "date-time", nullable: true },
+          timeLocal: { type: "string", nullable: true },
+        },
+      },
+    },
+    food: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          calories: { type: "number" },
+          proteinG: { type: "number", nullable: true },
+          carbsG: { type: "number", nullable: true },
+          fatG: { type: "number", nullable: true },
+          kcalPer100G: { type: "number", nullable: true },
+          proteinPer100G: { type: "number", nullable: true },
+          fatPer100G: { type: "number", nullable: true },
+          carbsPer100G: { type: "number", nullable: true },
+          weightG: { type: "number", nullable: true },
+          notedAt: { type: "string", format: "date-time", nullable: true },
+          timeLocal: { type: "string", nullable: true },
+        },
+      },
+    },
+    activity: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          type: { type: "string" },
+          durationMin: { type: "number", nullable: true },
+          calories: { type: "number", nullable: true },
+          intensity: { type: "string", nullable: true },
+          notedAt: { type: "string", format: "date-time", nullable: true },
+          timeLocal: { type: "string", nullable: true },
+        },
+      },
+    },
+    exercise: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          sets: { type: "number", nullable: true },
+          reps: { type: "number", nullable: true },
+          weightKg: { type: "number", nullable: true },
+          durationMin: { type: "number", nullable: true },
+          calories: { type: "number", nullable: true },
+          notedAt: { type: "string", format: "date-time", nullable: true },
+          timeLocal: { type: "string", nullable: true },
+        },
+      },
+    },
+    sleep: {
+      type: "object",
+      nullable: true,
+      properties: {
+        startAt: { type: "string", format: "date-time" },
+        endAt: { type: "string", format: "date-time" },
+        startLocal: { type: "string", nullable: true },
+        endLocal: { type: "string", nullable: true },
+        quality: { type: "number", nullable: true },
+        durationMin: { type: "number", nullable: true },
+      },
+    },
+    totals: {
+      type: "object",
+      properties: {
+        kcal: { type: "number" },
+        protein: { type: "number" },
+        fat: { type: "number" },
+        carbs: { type: "number" },
+        food_weight_g: { type: "number" },
+        food_items_count: { type: "number" },
+        water_l: { type: "number" },
+        liquid_water_l: { type: "number" },
+        steps: { type: "number" },
+        sleep_hours: { type: "number" },
+      },
+    },
+    theoretical: {
+      type: "object",
+      properties: {
+        steps_burn_kcal: { type: "number" },
+        net_deficit_kcal: { type: "number" },
+        projected_weekly_kg: { type: "number" },
+      },
+    },
+    etag: { type: "string" },
+  },
+};
+
 @ApiTags("records")
 @ApiBearerAuth()
 @Controller("records")
@@ -64,6 +187,13 @@ export class RecordsController {
   })
   @ApiOkResponse({
     description: "Returns mapped day record JSON with ETag header",
+    schema: dayRecordResponseSchema,
+    headers: {
+      ETag: {
+        description: "Optimistic concurrency token",
+        schema: { type: "string" },
+      },
+    },
   })
   @Put(":date")
   async replaceRecord(
@@ -304,6 +434,13 @@ export class RecordsController {
   })
   @ApiOkResponse({
     description: "Returns mapped day record JSON with ETag header",
+    schema: dayRecordResponseSchema,
+    headers: {
+      ETag: {
+        description: "Optimistic concurrency token",
+        schema: { type: "string" },
+      },
+    },
   })
   @Patch(":date")
   async patchRecord(
@@ -564,6 +701,13 @@ export class RecordsController {
   })
   @ApiOkResponse({
     description: "Returns mapped day record JSON with ETag header",
+    schema: dayRecordResponseSchema,
+    headers: {
+      ETag: {
+        description: "Optimistic concurrency token",
+        schema: { type: "string" },
+      },
+    },
   })
   @Post()
   async upsertRecord(
@@ -722,6 +866,13 @@ export class RecordsController {
   @ApiParam({ name: "date", example: "2025-09-01" })
   @ApiOkResponse({
     description: "Returns mapped day record JSON with totals/theoretical",
+    schema: dayRecordResponseSchema,
+    headers: {
+      ETag: {
+        description: "Optimistic concurrency token",
+        schema: { type: "string" },
+      },
+    },
   })
   @Get(":date")
   async getByDate(
