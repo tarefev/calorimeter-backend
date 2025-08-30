@@ -4,7 +4,6 @@ import {
   Put,
   Post,
   Patch,
-  Delete,
   Body,
   Param,
   Req,
@@ -13,108 +12,59 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Response } from "express";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from "@nestjs/swagger";
 import { AuthenticatedRequest } from "@/auth/session.middleware";
 import { fetchDayRecordWithChildren } from "@/records/mapper/queries";
 import { mapDayRecordToJson } from "@/records/mapper/dayRecord.mapper";
 import { prisma } from "@/prisma/prismaClient";
 
+@ApiTags("records")
+@ApiBearerAuth()
 @Controller("records")
 export class RecordsController {
-  @Post(":date/water")
-  async addWater(
-    @Param("date") dateParam: string,
-    @Body() body: any,
-    @Req() req: AuthenticatedRequest,
-    @Res() res: Response
-  ) {
-    const userId = req.user?.id;
-    if (!userId)
-      throw new HttpException("unauthorized", HttpStatus.UNAUTHORIZED);
-    const date = new Date(`${dateParam}T00:00:00.000Z`);
-
-    const created = await prisma.$transaction(async (tx) => {
-      const day = await tx.dayRecord.upsert({
-        where: { userId_date: { userId, date } },
-        create: { userId, date },
-        update: {},
-      });
-      const w = await tx.water.create({
-        data: {
-          dayRecordId: day.id,
-          amountMl: Number(body?.amountMl) || 0,
-          notedAt: body?.notedAt ? new Date(body.notedAt) : undefined,
-          timeLocal: body?.timeLocal ?? null,
+  @ApiOperation({ summary: "Replace entire day record by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiBody({
+    description: "Full day record payload; omitting collection creates empty",
+    schema: {
+      type: "object",
+      properties: {
+        metric: {
+          type: "object",
+          properties: {
+            caloriesIn: { type: "number" },
+            caloriesOut: { type: "number" },
+            weightKg: { type: "number" },
+            bodyFatPct: { type: "number" },
+            proteinG: { type: "number" },
+            carbsG: { type: "number" },
+            fatG: { type: "number" },
+          },
         },
-      });
-      await tx.dayRecord.update({
-        where: { id: day.id },
-        data: { updatedAt: new Date() },
-      });
-      return w;
-    });
-    return res.status(200).json({ id: created.id });
-  }
-
-  @Patch("water/:id")
-  async updateWater(
-    @Param("id") id: string,
-    @Req() req: AuthenticatedRequest,
-    @Body() body: any,
-    @Res() res: Response
-  ) {
-    const userId = req.user?.id;
-    if (!userId)
-      throw new HttpException("unauthorized", HttpStatus.UNAUTHORIZED);
-
-    // Ensure ownership via join on DayRecord
-    const item = await prisma.water.findUnique({ where: { id } });
-    if (!item) throw new HttpException("not_found", HttpStatus.NOT_FOUND);
-    const day = await prisma.dayRecord.findUnique({
-      where: { id: item.dayRecordId },
-    });
-    if (!day || day.userId !== userId)
-      throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
-
-    await prisma.water.update({
-      where: { id },
-      data: {
-        amountMl: body?.amountMl ?? undefined,
-        notedAt: body?.notedAt ? new Date(body.notedAt) : undefined,
-        timeLocal: body?.timeLocal ?? undefined,
+        water: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              amountMl: { type: "number" },
+              notedAt: { type: "string", format: "date-time" },
+              timeLocal: { type: "string", nullable: true },
+            },
+          },
+        },
       },
-    });
-    await prisma.dayRecord.update({
-      where: { id: day.id },
-      data: { updatedAt: new Date() },
-    });
-    return res.status(200).json({ ok: true });
-  }
-
-  @Delete("water/:id")
-  async deleteWater(
-    @Param("id") id: string,
-    @Req() req: AuthenticatedRequest,
-    @Res() res: Response
-  ) {
-    const userId = req.user?.id;
-    if (!userId)
-      throw new HttpException("unauthorized", HttpStatus.UNAUTHORIZED);
-
-    const item = await prisma.water.findUnique({ where: { id } });
-    if (!item) throw new HttpException("not_found", HttpStatus.NOT_FOUND);
-    const day = await prisma.dayRecord.findUnique({
-      where: { id: item.dayRecordId },
-    });
-    if (!day || day.userId !== userId)
-      throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
-
-    await prisma.water.delete({ where: { id } });
-    await prisma.dayRecord.update({
-      where: { id: day.id },
-      data: { updatedAt: new Date() },
-    });
-    return res.status(200).json({ ok: true });
-  }
+    },
+  })
+  @ApiOkResponse({
+    description: "Returns mapped day record JSON with ETag header",
+  })
   @Put(":date")
   async replaceRecord(
     @Param("date") dateParam: string,
@@ -244,6 +194,117 @@ export class RecordsController {
     return res.status(200).json(mapped);
   }
 
+  @ApiOperation({ summary: "Patch day record collections by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiBody({
+    description:
+      "Partial update payload, e.g. { water: { delete:[], upsert:[] } }",
+    schema: {
+      type: "object",
+      properties: {
+        water: {
+          type: "object",
+          properties: {
+            delete: { type: "array", items: { type: "string" } },
+            upsert: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", nullable: true },
+                  amountMl: { type: "number" },
+                  notedAt: { type: "string", format: "date-time" },
+                  timeLocal: { type: "string", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        food: {
+          type: "object",
+          properties: {
+            delete: { type: "array", items: { type: "string" } },
+            upsert: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", nullable: true },
+                  name: { type: "string" },
+                  calories: { type: "number" },
+                  proteinG: { type: "number", nullable: true },
+                  carbsG: { type: "number", nullable: true },
+                  fatG: { type: "number", nullable: true },
+                  weightG: { type: "number", nullable: true },
+                  notedAt: {
+                    type: "string",
+                    format: "date-time",
+                    nullable: true,
+                  },
+                  timeLocal: { type: "string", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        activity: {
+          type: "object",
+          properties: {
+            delete: { type: "array", items: { type: "string" } },
+            upsert: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", nullable: true },
+                  type: { type: "string" },
+                  durationMin: { type: "number", nullable: true },
+                  calories: { type: "number", nullable: true },
+                  intensity: { type: "string", nullable: true },
+                  notedAt: {
+                    type: "string",
+                    format: "date-time",
+                    nullable: true,
+                  },
+                  timeLocal: { type: "string", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        exercise: {
+          type: "object",
+          properties: {
+            delete: { type: "array", items: { type: "string" } },
+            upsert: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", nullable: true },
+                  name: { type: "string" },
+                  sets: { type: "number", nullable: true },
+                  reps: { type: "number", nullable: true },
+                  weightKg: { type: "number", nullable: true },
+                  durationMin: { type: "number", nullable: true },
+                  calories: { type: "number", nullable: true },
+                  notedAt: {
+                    type: "string",
+                    format: "date-time",
+                    nullable: true,
+                  },
+                  timeLocal: { type: "string", nullable: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: "Returns mapped day record JSON with ETag header",
+  })
   @Patch(":date")
   async patchRecord(
     @Param("date") dateParam: string,
@@ -304,6 +365,174 @@ export class RecordsController {
         }
       }
 
+      // Food collection upsert/delete
+      if (body?.food) {
+        const f = body.food;
+        if (Array.isArray(f.delete) && f.delete.length > 0) {
+          await tx.food.deleteMany({
+            where: { dayRecordId: day.id, id: { in: f.delete } },
+          });
+        }
+        if (Array.isArray(f.upsert)) {
+          for (const item of f.upsert) {
+            if (item.id) {
+              await tx.food.upsert({
+                where: { id: item.id },
+                update: {
+                  name: item?.name ?? undefined,
+                  calories: item?.calories ?? undefined,
+                  proteinG: item?.proteinG ?? undefined,
+                  carbsG: item?.carbsG ?? undefined,
+                  fatG: item?.fatG ?? undefined,
+                  kcalPer100G: item?.kcalPer100G ?? undefined,
+                  proteinPer100G: item?.proteinPer100G ?? undefined,
+                  fatPer100G: item?.fatPer100G ?? undefined,
+                  carbsPer100G: item?.carbsPer100G ?? undefined,
+                  weightG: item?.weightG ?? undefined,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : undefined,
+                  timeLocal: item?.timeLocal ?? undefined,
+                },
+                create: {
+                  dayRecordId: day.id,
+                  name: String(item?.name ?? "food"),
+                  calories: Number(item?.calories) || 0,
+                  proteinG: item?.proteinG ?? null,
+                  carbsG: item?.carbsG ?? null,
+                  fatG: item?.fatG ?? null,
+                  kcalPer100G: item?.kcalPer100G ?? null,
+                  proteinPer100G: item?.proteinPer100G ?? null,
+                  fatPer100G: item?.fatPer100G ?? null,
+                  carbsPer100G: item?.carbsPer100G ?? null,
+                  weightG: item?.weightG ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            } else {
+              await tx.food.create({
+                data: {
+                  dayRecordId: day.id,
+                  name: String(item?.name ?? "food"),
+                  calories: Number(item?.calories) || 0,
+                  proteinG: item?.proteinG ?? null,
+                  carbsG: item?.carbsG ?? null,
+                  fatG: item?.fatG ?? null,
+                  kcalPer100G: item?.kcalPer100G ?? null,
+                  proteinPer100G: item?.proteinPer100G ?? null,
+                  fatPer100G: item?.fatPer100G ?? null,
+                  carbsPer100G: item?.carbsPer100G ?? null,
+                  weightG: item?.weightG ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      // Activity collection upsert/delete
+      if (body?.activity) {
+        const a = body.activity;
+        if (Array.isArray(a.delete) && a.delete.length > 0) {
+          await tx.activity.deleteMany({
+            where: { dayRecordId: day.id, id: { in: a.delete } },
+          });
+        }
+        if (Array.isArray(a.upsert)) {
+          for (const item of a.upsert) {
+            if (item.id) {
+              await tx.activity.upsert({
+                where: { id: item.id },
+                update: {
+                  type: item?.type ?? undefined,
+                  durationMin: item?.durationMin ?? undefined,
+                  calories: item?.calories ?? undefined,
+                  intensity: item?.intensity ?? undefined,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : undefined,
+                  timeLocal: item?.timeLocal ?? undefined,
+                },
+                create: {
+                  dayRecordId: day.id,
+                  type: String(item?.type ?? "activity"),
+                  durationMin: item?.durationMin ?? null,
+                  calories: item?.calories ?? null,
+                  intensity: item?.intensity ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            } else {
+              await tx.activity.create({
+                data: {
+                  dayRecordId: day.id,
+                  type: String(item?.type ?? "activity"),
+                  durationMin: item?.durationMin ?? null,
+                  calories: item?.calories ?? null,
+                  intensity: item?.intensity ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      // Exercise collection upsert/delete
+      if (body?.exercise) {
+        const e = body.exercise;
+        if (Array.isArray(e.delete) && e.delete.length > 0) {
+          await tx.exercise.deleteMany({
+            where: { dayRecordId: day.id, id: { in: e.delete } },
+          });
+        }
+        if (Array.isArray(e.upsert)) {
+          for (const item of e.upsert) {
+            if (item.id) {
+              await tx.exercise.upsert({
+                where: { id: item.id },
+                update: {
+                  name: item?.name ?? undefined,
+                  sets: item?.sets ?? undefined,
+                  reps: item?.reps ?? undefined,
+                  weightKg: item?.weightKg ?? undefined,
+                  durationMin: item?.durationMin ?? undefined,
+                  calories: item?.calories ?? undefined,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : undefined,
+                  timeLocal: item?.timeLocal ?? undefined,
+                },
+                create: {
+                  dayRecordId: day.id,
+                  name: String(item?.name ?? "exercise"),
+                  sets: item?.sets ?? null,
+                  reps: item?.reps ?? null,
+                  weightKg: item?.weightKg ?? null,
+                  durationMin: item?.durationMin ?? null,
+                  calories: item?.calories ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            } else {
+              await tx.exercise.create({
+                data: {
+                  dayRecordId: day.id,
+                  name: String(item?.name ?? "exercise"),
+                  sets: item?.sets ?? null,
+                  reps: item?.reps ?? null,
+                  weightKg: item?.weightKg ?? null,
+                  durationMin: item?.durationMin ?? null,
+                  calories: item?.calories ?? null,
+                  notedAt: item?.notedAt ? new Date(item.notedAt) : null,
+                  timeLocal: item?.timeLocal ?? null,
+                },
+              });
+            }
+          }
+        }
+      }
+
       await tx.dayRecord.update({
         where: { id: day.id },
         data: { updatedAt: new Date() },
@@ -315,6 +544,27 @@ export class RecordsController {
     if (mapped?.etag) res.setHeader("ETag", mapped.etag);
     return res.status(200).json(mapped);
   }
+  @ApiOperation({ summary: "Upsert day record by date (idempotent)" })
+  @ApiBody({
+    description:
+      "Upsert payload must include date, may include metric and collections",
+    schema: {
+      type: "object",
+      required: ["date"],
+      properties: {
+        date: { type: "string", example: "2025-09-01" },
+        metric: { type: "object" },
+        water: { type: "array", items: { type: "object" } },
+        food: { type: "array", items: { type: "object" } },
+        activity: { type: "array", items: { type: "object" } },
+        exercise: { type: "array", items: { type: "object" } },
+        sleep: { type: "object", nullable: true },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: "Returns mapped day record JSON with ETag header",
+  })
   @Post()
   async upsertRecord(
     @Body() body: any,
@@ -468,6 +718,11 @@ export class RecordsController {
     return res.status(200).json(mapped);
   }
 
+  @ApiOperation({ summary: "Get day record by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiOkResponse({
+    description: "Returns mapped day record JSON with totals/theoretical",
+  })
   @Get(":date")
   async getByDate(
     @Param("date") dateParam: string,

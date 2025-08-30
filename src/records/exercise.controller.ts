@@ -11,11 +11,39 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Response } from "express";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from "@nestjs/swagger";
 import { prisma } from "@/prisma/prismaClient";
 import { AuthenticatedRequest } from "@/auth/session.middleware";
 
+@ApiTags("exercise")
+@ApiBearerAuth()
 @Controller()
 export class ExerciseController {
+  @ApiOperation({ summary: "Add exercise entry to day by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        sets: { type: "number", nullable: true },
+        reps: { type: "number", nullable: true },
+        weightKg: { type: "number", nullable: true },
+        durationMin: { type: "number", nullable: true },
+        calories: { type: "number", nullable: true },
+        notedAt: { type: "string", format: "date-time", nullable: true },
+        timeLocal: { type: "string", nullable: true },
+      },
+    },
+  })
+  @ApiOkResponse({ description: "{ id: string }" })
   @Post("records/:date/exercise")
   async addExercise(
     @Param("date") dateParam: string,
@@ -56,6 +84,9 @@ export class ExerciseController {
     return res.status(200).json({ id: created.id });
   }
 
+  @ApiOperation({ summary: "Update exercise item by id" })
+  @ApiParam({ name: "id", description: "Exercise item id" })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Patch("exercise/:id")
   async updateExercise(
     @Param("id") id: string,
@@ -94,6 +125,9 @@ export class ExerciseController {
     return res.status(200).json({ ok: true });
   }
 
+  @ApiOperation({ summary: "Delete exercise item by id" })
+  @ApiParam({ name: "id", description: "Exercise item id" })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Delete("exercise/:id")
   async deleteExercise(
     @Param("id") id: string,

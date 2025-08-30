@@ -33,6 +33,11 @@ async function bootstrap(): Promise<void> {
     .setDescription("API for Calorimeter backend")
     .setVersion("1.0")
     .addTag("auth")
+    .addTag("records")
+    .addTag("water")
+    .addTag("food")
+    .addTag("activity")
+    .addTag("exercise")
     .build();
   const document = require("@nestjs/swagger").SwaggerModule.createDocument(
     app,

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Post,
   Patch,
   Delete,
   Param,
@@ -10,11 +11,81 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Response } from "express";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from "@nestjs/swagger";
 import { prisma } from "@/prisma/prismaClient";
 import { AuthenticatedRequest } from "@/auth/session.middleware";
 
+@ApiTags("water")
+@ApiBearerAuth()
 @Controller()
 export class WaterController {
+  @ApiOperation({ summary: "Add water entry to day by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        amountMl: { type: "number" },
+        notedAt: { type: "string", format: "date-time" },
+        timeLocal: { type: "string", nullable: true },
+      },
+    },
+  })
+  @ApiOkResponse({ description: "{ id: string }" })
+  @Post("records/:date/water")
+  async addWater(
+    @Param("date") dateParam: string,
+    @Body() body: any,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response
+  ) {
+    const userId = req.user?.id;
+    if (!userId)
+      throw new HttpException("unauthorized", HttpStatus.UNAUTHORIZED);
+    const date = new Date(`${dateParam}T00:00:00.000Z`);
+
+    const created = await prisma.$transaction(async (tx) => {
+      const day = await tx.dayRecord.upsert({
+        where: { userId_date: { userId, date } },
+        create: { userId, date },
+        update: {},
+      });
+      const w = await tx.water.create({
+        data: {
+          dayRecordId: day.id,
+          amountMl: Number(body?.amountMl) || 0,
+          notedAt: body?.notedAt ? new Date(body.notedAt) : undefined,
+          timeLocal: body?.timeLocal ?? null,
+        },
+      });
+      await tx.dayRecord.update({
+        where: { id: day.id },
+        data: { updatedAt: new Date() },
+      });
+      return w;
+    });
+    return res.status(200).json({ id: created.id });
+  }
+  @ApiOperation({ summary: "Update water item by id" })
+  @ApiParam({ name: "id", description: "Water item id" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        amountMl: { type: "number" },
+        notedAt: { type: "string", format: "date-time" },
+        timeLocal: { type: "string", nullable: true },
+      },
+    },
+  })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Patch("water/:id")
   async updateWater(
     @Param("id") id: string,
@@ -49,6 +120,9 @@ export class WaterController {
     return res.status(200).json({ ok: true });
   }
 
+  @ApiOperation({ summary: "Delete water item by id" })
+  @ApiParam({ name: "id", description: "Water item id" })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Delete("water/:id")
   async deleteWater(
     @Param("id") id: string,

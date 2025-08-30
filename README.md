@@ -83,3 +83,62 @@ Endpoints and examples:
 - `POST /auth/link/confirm` → bot confirms token and attaches Telegram account (requires `X-Bot-Token`).
 
 Swagger is available at `/api` when the backend is running (dev mode).
+
+## Records API (CRUD day_record_v1)
+
+Основные эндпоинты:
+
+- `GET /records/:date` — получить JSON одного дня (с `totals`/`theoretical`, ETag)
+- `POST /records` — создать/заменить запись дня (идемпотентно по `user+date`)
+- `PUT /records/:date` — заменить целиком запись указанной даты
+- `PATCH /records/:date` — частичные изменения коллекций (upsert/delete)
+
+Под-ресурсы (частые операции):
+
+- Вода: `POST /records/:date/water`, `PATCH /water/:id`, `DELETE /water/:id`
+- Еда: `POST /records/:date/food`, `PATCH /food/:id`, `DELETE /food/:id`
+- Активность: `POST /records/:date/activity`, `PATCH /activity/:id`, `DELETE /activity/:id`
+- Упражнения: `POST /records/:date/exercise`, `PATCH /exercise/:id`, `DELETE /exercise/:id`
+
+Примеры:
+
+```bash
+# GET: получить день
+curl -s -b cookie.txt https://api.daysnap.ru/records/2025-09-01 | jq
+
+# POST: создать/заменить день
+curl -s -X POST -H "Content-Type: application/json" -b cookie.txt \
+  https://api.daysnap.ru/records \
+  -d '{
+    "date": "2025-09-01",
+    "metric": { "caloriesIn": 1200 },
+    "water": [ { "amountMl": 250 } ],
+    "food": [ { "name": "Apple", "calories": 52 } ],
+    "activity": [],
+    "exercise": [],
+    "sleep": null
+  }'
+
+# PUT: заменить целиком
+curl -s -X PUT -H "Content-Type: application/json" -b cookie.txt \
+  https://api.daysnap.ru/records/2025-09-01 \
+  -d '{ "water": [ { "amountMl": 400 } ], "metric": { "caloriesIn": 900 } }'
+
+# PATCH: частично обновить воду (удалить и добавить)
+curl -s -X PATCH -H "Content-Type: application/json" -b cookie.txt \
+  https://api.daysnap.ru/records/2025-09-01 \
+  -d '{ "water": { "delete": ["<waterId>"], "upsert": [ { "amountMl": 500 } ] } }'
+
+# Под-ресурсы вода
+curl -s -X POST -H "Content-Type: application/json" -b cookie.txt \
+  https://api.daysnap.ru/records/2025-09-01/water \
+  -d '{ "amountMl": 300 }'
+
+curl -s -X PATCH -H "Content-Type: application/json" -b cookie.txt \
+  https://api.daysnap.ru/water/<waterId> \
+  -d '{ "amountMl": 450 }'
+
+curl -s -X DELETE -b cookie.txt https://api.daysnap.ru/water/<waterId>
+```
+
+Доступ: web — cookie‑сессия; бот — заголовки `X-Bot-Token` + `X-Telegram-User-Id`.

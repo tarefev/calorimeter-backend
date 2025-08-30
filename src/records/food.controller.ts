@@ -11,11 +11,39 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Response } from "express";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from "@nestjs/swagger";
 import { prisma } from "@/prisma/prismaClient";
 import { AuthenticatedRequest } from "@/auth/session.middleware";
 
+@ApiTags("food")
+@ApiBearerAuth()
 @Controller()
 export class FoodController {
+  @ApiOperation({ summary: "Add food entry to day by date" })
+  @ApiParam({ name: "date", example: "2025-09-01" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        calories: { type: "number" },
+        proteinG: { type: "number", nullable: true },
+        carbsG: { type: "number", nullable: true },
+        fatG: { type: "number", nullable: true },
+        weightG: { type: "number", nullable: true },
+        notedAt: { type: "string", format: "date-time", nullable: true },
+        timeLocal: { type: "string", nullable: true },
+      },
+    },
+  })
+  @ApiOkResponse({ description: "{ id: string }" })
   @Post("records/:date/food")
   async addFood(
     @Param("date") dateParam: string,
@@ -60,6 +88,9 @@ export class FoodController {
     return res.status(200).json({ id: created.id });
   }
 
+  @ApiOperation({ summary: "Update food item by id" })
+  @ApiParam({ name: "id", description: "Food item id" })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Patch("food/:id")
   async updateFood(
     @Param("id") id: string,
@@ -102,6 +133,9 @@ export class FoodController {
     return res.status(200).json({ ok: true });
   }
 
+  @ApiOperation({ summary: "Delete food item by id" })
+  @ApiParam({ name: "id", description: "Food item id" })
+  @ApiOkResponse({ description: "{ ok: true }" })
   @Delete("food/:id")
   async deleteFood(
     @Param("id") id: string,
